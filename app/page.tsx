@@ -53,7 +53,7 @@ export default function Home() {
         onClick={handleAdd}
         className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200 active:scale-95"
       >
-        Test Insert
+        Insert Data
       </button>
     </main>
   )
