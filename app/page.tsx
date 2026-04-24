@@ -42,7 +42,7 @@ export default function Home() {
       console.error(error)
       alert('ERROR: ' + error.message)
     } else {
-      alert('data masuk')
+      alert('Data Masuk: ' + JSON.stringify(data))
       console.log(data)
     }
   }
