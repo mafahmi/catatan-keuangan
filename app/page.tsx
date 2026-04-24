@@ -37,13 +37,15 @@ export default function Home() {
         note: randomNote(),
         created_by: '1',
       })
+	  .select()
 
     if (error) {
-      console.error(error)
-      alert('ERROR: ' + error.message)
+      	console.error(error)
+      	alert('ERROR: ' + error.message)
     } else {
-      alert('Data Masuk: ' + JSON.stringify(data))
-      console.log(data)
+		// tampilkan respon dari insert data
+    	alert('Data Masuk: ' + JSON.stringify(data))
+      	console.log(data)
     }
   }
 
