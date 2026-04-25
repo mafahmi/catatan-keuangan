@@ -1,62 +1,96 @@
 'use client'
 
 import { supabase } from '@/lib/supabase'
+import { parseInput } from '@/lib/parser'
+import { useEffect, useState } from 'react'
 
 export default function Home() {
+	const [input, setInput] = useState('')
+	const [transactions, setTransactions] = useState<any[]>([])
 
-  const categories = [
-    { id: 1, name: 'makan' },
-    { id: 2, name: 'transportasi' },
-    { id: 3, name: 'hiburan' },
-  ]
+	// ambil data dari supabase
+	const fetchData = async () => {
+		const { data, error } = await supabase
+			.from('transactions')
+			.select('*')
+			.order('created_at', { ascending: false })
 
-  const randomCategory = () => {
-    const randomIndex = Math.floor(Math.random() * categories.length)
-    return categories[randomIndex].name
-  }
+		if (error) {
+			console.error(error)
+		} else {
+			setTransactions(data)
+		}
+	}
 
-  const notes = [
-    { id: 1, name: 'nasi goreng' },
-    { id: 2, name: 'bakso' },
-    { id: 3, name: 'sate' },
-  ]
+	// jalan pertama kali
+	useEffect(() => {
+		fetchData()
+	}, [])
 
-  const randomNote = () => {
-    const randomIndex = Math.floor(Math.random() * notes.length)
-    return notes[randomIndex].name
-  }
+	const handleAdd = async () => {
+		const parsed = parseInput(input)
 
-  const amount = Math.floor(Math.random() * (100000 - 10000 + 1)) + 10000
+		const { error } = await supabase
+			.from('transactions')
+			.insert(parsed)
 
-  const handleAdd = async () => {
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert({
-        amount: amount,
-        category: randomCategory(),
-        note: randomNote(),
-        created_by: '1',
-      })
-	  .select()
+		if (error) {
+			alert(error.message)
+		} else {
+			setInput('')
+			fetchData() // refresh list
+		}
+	}
 
-    if (error) {
-      	console.error(error)
-      	alert('ERROR: ' + error.message)
-    } else {
-		// tampilkan respon dari insert data
-    	alert('Data Masuk: ' + JSON.stringify(data))
-      	console.log(data)
-    }
-  }
+	// helper format
+	const formatRupiah = (angka: number) => {
+		return angka.toLocaleString('id-ID')
+	}
 
-  return (
-    <main className="flex min-h-screen items-center justify-center p-8">
-      <button 
-        onClick={handleAdd}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200 active:scale-95"
-      >
-        Insert Data
-      </button>
-    </main>
-  )
+	const formatDate = (date: string) => {
+		return new Date(date).toLocaleString('id-ID', {
+			timeZone: 'Asia/Jakarta',
+		})
+	}
+
+	return (
+		<main className="p-4 max-w-md mx-auto">
+			{/* INPUT */}
+			<div className="flex gap-2 mb-4">
+				<input
+					className="border p-2 flex-1 rounded"
+					value={input}
+					onChange={(e) => setInput(e.target.value)}
+					placeholder="contoh: makan 20k"
+				/>
+
+				<button
+					onClick={handleAdd}
+					className="bg-blue-500 text-white px-4 rounded"
+				>
+					Simpan
+				</button>
+			</div>
+
+			{/* LIST */}
+			<div>
+				{transactions.length === 0 && (
+					<p className="text-gray-500">Belum ada transaksi</p>
+				)}
+
+				{transactions.map((item) => (
+					<div
+						key={item.id}
+						className="p-3 border rounded-xl mb-2"
+					>
+						<div className="font-semibold">{item.note}</div>
+						<div>Rp {formatRupiah(item.amount)}</div>
+						<div className="text-xs text-gray-500">
+							{formatDate(item.created_at)}
+						</div>
+					</div>
+				))}
+			</div>
+		</main>
+	)
 }
