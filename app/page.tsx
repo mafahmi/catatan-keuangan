@@ -30,6 +30,22 @@ export default function Home() {
 	const handleAdd = async () => {
 		const parsed = parseInput(input)
 
+		// validasi sederhana
+		if (!parsed) {
+			alert('Format salah. Contoh: makan 20k')
+			return
+		}
+
+		if (parsed.amount <= 0) {
+			alert('Berikan Informasi Harga yang Benar, Contoh "makan 20k"')
+			return
+		}
+
+		if (!parsed.note) {
+			alert('Catatan tidak boleh kosong')
+			return
+		}
+
 		const { error } = await supabase
 			.from('transactions')
 			.insert(parsed)
@@ -53,6 +69,27 @@ export default function Home() {
 		})
 	}
 
+	// hitung total dan jumlah transaksi hari ini
+	const todayStats = transactions.reduce(
+		(acc, item) => {
+			const today = new Date()
+			const createdAt = new Date(item.created_at)
+
+			const isToday =
+				createdAt.getDate() === today.getDate() &&
+				createdAt.getMonth() === today.getMonth() &&
+				createdAt.getFullYear() === today.getFullYear()
+
+			if (isToday) {
+				acc.total += item.amount
+				acc.count += 1
+			}
+
+			return acc
+		},
+		{ total: 0, count: 0 }
+	)
+
 	return (
 		<main className="p-4 max-w-md mx-auto">
 			{/* INPUT */}
@@ -70,6 +107,11 @@ export default function Home() {
 				>
 					Simpan
 				</button>
+			</div>
+
+			{/* hitung total hari ini dan jumlah transaksi */}
+			<div className="mb-4 text-lg font-semibold">
+				Total hari ini: Rp {formatRupiah(todayStats.total)} ({todayStats.count} transaksi)
 			</div>
 
 			{/* LIST */}
