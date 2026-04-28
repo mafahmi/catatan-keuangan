@@ -3,13 +3,16 @@
 import { supabase } from '@/lib/supabase'
 import { parseInput } from '@/lib/parser'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 export default function Home() {
 	const [input, setInput] = useState('')
 	const [transactions, setTransactions] = useState<any[]>([])
+	const [loading, setLoading] = useState(true)
 
 	// ambil data dari supabase
 	const fetchData = async () => {
+		setLoading(true)
 		const { data, error } = await supabase
 			.from('transactions')
 			.select('*')
@@ -20,6 +23,7 @@ export default function Home() {
 		} else {
 			setTransactions(data)
 		}
+		setLoading(false)
 	}
 
 	// jalan pertama kali
@@ -32,17 +36,17 @@ export default function Home() {
 
 		// validasi sederhana
 		if (!parsed) {
-			alert('Format salah. Contoh: makan 20k')
+			toast.error('Format salah. Contoh: makan 20k')
 			return
 		}
 
 		if (parsed.amount <= 0) {
-			alert('Berikan Informasi Harga yang Benar, Contoh "makan 20k"')
+			toast.error('Berikan Informasi Harga yang Benar, Contoh "makan 20k"')
 			return
 		}
 
 		if (!parsed.note) {
-			alert('Catatan tidak boleh kosong')
+			toast.error('Catatan tidak boleh kosong')
 			return
 		}
 
@@ -51,9 +55,18 @@ export default function Home() {
 			.insert(parsed)
 
 		if (error) {
-			alert(error.message)
+			toast.error(error.message)
 		} else {
 			setInput('')
+			
+			// Hitung sisa budget
+			const newTotal = todayStats.total + parsed.amount
+			const remaining = DAILY_BUDGET - newTotal
+			
+			toast.success('Tersimpan!', {
+				description: `Sisa budget: Rp ${formatRupiah(remaining)}`
+			})
+			
 			fetchData() // refresh list
 		}
 	}
@@ -90,6 +103,19 @@ export default function Home() {
 		{ total: 0, count: 0 }
 	)
 
+	// Budget & Insight
+	const DAILY_BUDGET = 100000 // hardcode 100k dulu
+	const usagePercentage = (todayStats.total / DAILY_BUDGET) * 100
+	
+	// Status berdasarkan persentase
+	const getStatus = () => {
+		if (usagePercentage < 50) return { label: 'aman', color: 'text-green-600' }
+		if (usagePercentage < 80) return { label: 'hati-hati', color: 'text-yellow-600' }
+		return { label: 'boros', color: 'text-red-600' }
+	}
+	
+	const status = getStatus()
+
 	return (
 		<main className="p-4 max-w-md mx-auto">
 			{/* INPUT */}
@@ -98,7 +124,9 @@ export default function Home() {
 					className="border p-2 flex-1 rounded"
 					value={input}
 					onChange={(e) => setInput(e.target.value)}
+					onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
 					placeholder="contoh: makan 20k"
+					autoFocus
 				/>
 
 				<button
@@ -114,24 +142,71 @@ export default function Home() {
 				Total hari ini: Rp {formatRupiah(todayStats.total)} ({todayStats.count} transaksi)
 			</div>
 
+			{/* INSIGHT SECTION - "otak" aplikasi */}
+			<div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+				<div className="text-sm text-gray-600 mb-2">💡 Insight</div>
+
+				{ loading ? (
+					<div className="animate-pulse h-4 bg-gray-200 rounded w-1/2 mb-3"></div>
+				) : (
+					<>
+					<div className="font-semibold text-gray-800 mb-3">
+						Kamu sudah pakai {usagePercentage.toFixed(0)}% budget hari ini
+					</div>
+					
+					<div className="flex items-center gap-2">
+						<div className="flex-1 bg-gray-200 rounded-full h-2">
+							<div 
+								className={`h-2 rounded-full ${
+									usagePercentage < 50 ? 'bg-green-500' : 
+									usagePercentage < 80 ? 'bg-yellow-500' : 
+									'bg-red-500'
+								}`}
+								style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+							/>
+						</div>
+						<span className={`text-sm font-semibold ${status.color}`}>
+							{status.label}
+						</span>
+					</div>
+				</>
+				) }
+
+				<div className="text-xs text-gray-500 mt-2">
+					Budget harian: Rp {formatRupiah(DAILY_BUDGET)}
+				</div>
+			</div>
+
 			{/* LIST */}
 			<div>
-				{transactions.length === 0 && (
-					<p className="text-gray-500">Belum ada transaksi</p>
-				)}
-
-				{transactions.map((item) => (
-					<div
-						key={item.id}
-						className="p-3 border rounded-xl mb-2"
-					>
-						<div className="font-semibold">{item.note}</div>
-						<div>Rp {formatRupiah(item.amount)}</div>
-						<div className="text-xs text-gray-500">
-							{formatDate(item.created_at)}
-						</div>
+				{loading ? (
+					// Loading skeleton dengan pulse animation
+					<div className="space-y-2">
+						{[1, 2, 3].map((n) => (
+							<div key={n} className="animate-pulse p-3 border rounded-xl mb-2">
+								<div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+								<div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+								<div className="h-3 bg-gray-200 rounded w-1/4"></div>
+							</div>
+						))}
 					</div>
-				))}
+				) : transactions.length === 0 ? (
+					<p className="text-gray-500 animate-in fade-in duration-500">Belum ada transaksi</p>
+				) : (
+					transactions.map((item, index) => (
+						<div
+							key={item.id}
+							className="animate-in fade-in slide-in-from-bottom-2 duration-300 p-3 border rounded-xl mb-2"
+							style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'backwards' }}
+						>
+							<div className="font-semibold">{item.note}</div>
+							<div>Rp {formatRupiah(item.amount)}</div>
+							<div className="text-xs text-gray-500">
+								{formatDate(item.created_at)}
+							</div>
+						</div>
+					))
+				)}
 			</div>
 		</main>
 	)
