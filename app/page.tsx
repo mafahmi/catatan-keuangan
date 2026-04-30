@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 
 export default function Home() {
 	const [input, setInput] = useState('')
+	const [category, setCategory] = useState('')
 	const [transactions, setTransactions] = useState<any[]>([])
 	const [loading, setLoading] = useState(true)
 
@@ -34,6 +35,10 @@ export default function Home() {
 	const handleAdd = async () => {
 		const parsed = parseInput(input)
 
+		// tampilkan di logs
+		console.log('Parsed Input:', parsed)
+		console.log('Selected Category:', category)
+
 		// validasi sederhana
 		if (!parsed) {
 			toast.error('Format salah. Contoh: makan 20k')
@@ -50,14 +55,21 @@ export default function Home() {
 			return
 		}
 
+		// Tambahkan category ke data
+		const dataToInsert = {
+			...parsed,
+			category: category || 'lainnya' // default ke 'lainnya' jika kosong
+		}
+
 		const { error } = await supabase
 			.from('transactions')
-			.insert(parsed)
+			.insert(dataToInsert)
 
 		if (error) {
 			toast.error(error.message)
 		} else {
 			setInput('')
+			setCategory('') // reset kategori juga
 			
 			// Hitung sisa budget
 			const newTotal = todayStats.total + parsed.amount
@@ -69,6 +81,57 @@ export default function Home() {
 			
 			fetchData() // refresh list
 		}
+	}
+
+	// kategori utama untuk dropdown, nanti bisa ditambah dengan subkategori jika perlu
+	const MAIN_CATEGORIES = [
+		'makan_minum',
+		'transportasi',
+		'rumah_tangga',
+		'tagihan',
+		'kesehatan',
+		'hiburan',
+		'cicilan',
+		'investasi',
+		'sedekah',
+		'lainnya'
+	] as const
+
+	type Category = typeof MAIN_CATEGORIES[number]
+
+	// Auto-detect kategori berdasarkan keyword
+	const detectCategory = (text: string): string => {
+		const lower = text.toLowerCase()
+		
+		// Keywords untuk setiap kategori
+		const keywords: Record<string, string[]> = {
+			makan_minum: ['makan', 'minum', 'kopi', 'snack', 'nasi', 'resto', 'warung', 'jajan', 'sarapan', 'minum'],
+			transportasi: ['bensin', 'grab', 'gojek', 'parkir', 'tol', 'ojek', 'taxi', 'bus', 'kereta'],
+			rumah_tangga: ['beras', 'sabun', 'deterjen', 'belanja', 'pasar', 'supermarket', 'tisu', 'shampoo'],
+			tagihan: ['listrik', 'air', 'wifi', 'internet', 'pulsa', 'token', 'pdam', 'pln'],
+			kesehatan: ['obat', 'dokter', 'rumah sakit', 'apotek', 'vitamin', 'medical', 'klinik'],
+			hiburan: ['nonton', 'bioskop', 'game', 'netflix', 'spotify', 'hiburan', 'rekreasi'],
+			cicilan: ['cicilan', 'angsuran', 'kredit', 'paylater', 'installment'],
+			investasi: ['tabungan', 'emas', 'saham', 'reksadana', 'crypto', 'invest', 'deposito'],
+			sedekah: ['sedekah', 'donasi', 'infaq', 'zakat', 'amal', 'sumbangan'],
+		}
+		
+		// Cek setiap kategori
+		for (const [cat, words] of Object.entries(keywords)) {
+			if (words.some(word => lower.includes(word))) {
+				return cat
+			}
+		}
+		
+		return 'lainnya' // default
+	}
+
+	// Handler untuk input dengan auto-detect
+	const handleInputChange = (text: string) => {
+		setInput(text)
+		const detectedCat = detectCategory(text)
+		setCategory(detectedCat)
+		console.log('Detected category:', detectedCat) // debug
 	}
 
 	// helper format
@@ -119,22 +182,50 @@ export default function Home() {
 	return (
 		<main className="p-4 max-w-md mx-auto">
 			{/* INPUT */}
-			<div className="flex gap-2 mb-4">
-				<input
-					className="border p-2 flex-1 rounded"
-					value={input}
-					onChange={(e) => setInput(e.target.value)}
-					onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-					placeholder="contoh: makan 20k"
-					autoFocus
-				/>
 
-				<button
-					onClick={handleAdd}
-					className="bg-blue-500 text-white px-4 rounded"
-				>
-					Simpan
-				</button>
+			<div className='shadow-xl p-4 mb-6 rounded-lg'>
+
+				<div className="flex flex-row mb-2">
+					<div className="basis-full">
+						<label className="block text-sm font-medium mb-1">Keterangan & Harga</label>
+						<input
+							className="border p-2 flex-1 rounded w-full"
+							value={input}
+							onChange={(e) => handleInputChange(e.target.value)}
+							onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+							placeholder="contoh: makan 20k"
+							autoFocus
+						/>
+					</div>
+				</div>		
+				<div className="flex flex-row mb-2">
+					<div className="basis-full">
+						<label className="block text-sm font-medium mb-1">Kategori</label>
+						<select 
+							className="border p-2 rounded w-full"
+							value={category}
+							onChange={(e) => setCategory(e.target.value)}
+						>
+							<option value="">Pilih Kategori</option>
+							{MAIN_CATEGORIES.map((cat) => (
+								<option key={cat} value={cat}>
+									{cat.replace('_', ' ')}
+								</option>
+							))}
+						</select>
+					</div>
+				</div>
+
+				<div className="flex flex-row mb-2 justify-center">
+					<div className="basis-50">
+						<button
+							onClick={handleAdd}
+							className="bg-blue-500 shadow-lg shadow-blue-500/50 text-white px-4 rounded w-full py-2"
+						>
+							Simpan
+						</button>
+					</div>
+				</div>
 			</div>
 
 			{/* hitung total hari ini dan jumlah transaksi */}
@@ -199,7 +290,14 @@ export default function Home() {
 							className="animate-in fade-in slide-in-from-bottom-2 duration-300 p-3 border rounded-xl mb-2"
 							style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'backwards' }}
 						>
-							<div className="font-semibold">{item.note}</div>
+							<div className="flex justify-between items-start">
+								<div className="font-semibold">{item.note}</div>
+								{item.category && (
+									<span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+										{item.category.replace('_', ' ')}
+									</span>
+								)}
+							</div>
 							<div>Rp {formatRupiah(item.amount)}</div>
 							<div className="text-xs text-gray-500">
 								{formatDate(item.created_at)}
