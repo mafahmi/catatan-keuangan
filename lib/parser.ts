@@ -17,12 +17,8 @@ export function parseInput(input: string) {
   // hapus angka dari text → jadi note
   const note = lower.replace(/(\d+)(k|rb)?/, '').trim()
 
-  // kategori sederhana (sementara = note)
-  const category = note || 'lainnya'
-
   return {
     amount,
-    category,
     note
   }
 }

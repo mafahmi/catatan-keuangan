@@ -35,10 +35,6 @@ export default function Home() {
 	const handleAdd = async () => {
 		const parsed = parseInput(input)
 
-		// tampilkan di logs
-		console.log('Parsed Input:', parsed)
-		console.log('Selected Category:', category)
-
 		// validasi sederhana
 		if (!parsed) {
 			toast.error('Format salah. Contoh: makan 20k')
@@ -55,9 +51,10 @@ export default function Home() {
 			return
 		}
 
-		// Tambahkan category ke data
+		// prepare data untuk disimpan
 		const dataToInsert = {
-			...parsed,
+			amount: parsed.amount,
+			note: parsed.note,
 			category: category || 'lainnya' // default ke 'lainnya' jika kosong
 		}
 
@@ -131,7 +128,6 @@ export default function Home() {
 		setInput(text)
 		const detectedCat = detectCategory(text)
 		setCategory(detectedCat)
-		console.log('Detected category:', detectedCat) // debug
 	}
 
 	// helper format
@@ -181,52 +177,65 @@ export default function Home() {
 
 	return (
 		<main className="p-4 max-w-md mx-auto">
-			{/* INPUT */}
+			
+			{/* input */}
+			{
+				loading ? (
+						<div className="animate-pulse p-3 border rounded-xl mb-2">
+							<div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+							<div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+						</div>
+				) : (
+					<>
+					<div className='shadow-xl p-4 mb-6 rounded-lg'>
 
-			<div className='shadow-xl p-4 mb-6 rounded-lg'>
+						<div className="flex flex-row mb-2">
+							<div className="basis-full">
+								<label className="block text-sm font-medium mb-1">Keterangan & Harga</label>
+								<input
+									className="border p-2 flex-1 rounded w-full"
+									value={input}
+									onChange={(e) => handleInputChange(e.target.value)}
+									onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+									placeholder="contoh: makan 20k"
+									autoFocus
+								/>
+							</div>
+						</div>		
+						<div className="flex flex-row mb-2">
+							<div className="basis-full">
+								<label className="block text-sm font-medium mb-1">Kategori</label>
+								<select 
+									className="border p-2 rounded w-full"
+									value={category}
+									onChange={(e) => {
+										setCategory(e.target.value)
+									}}
+								>
+									<option value="">Pilih Kategori</option>
+									{MAIN_CATEGORIES.map((cat) => (
+										<option key={cat} value={cat}>
+											{cat.replace('_', ' ')}
+										</option>
+									))}
+								</select>
+							</div>
+						</div>
 
-				<div className="flex flex-row mb-2">
-					<div className="basis-full">
-						<label className="block text-sm font-medium mb-1">Keterangan & Harga</label>
-						<input
-							className="border p-2 flex-1 rounded w-full"
-							value={input}
-							onChange={(e) => handleInputChange(e.target.value)}
-							onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-							placeholder="contoh: makan 20k"
-							autoFocus
-						/>
+						<div className="flex flex-row mb-2 justify-center">
+							<div className="basis-50">
+								<button
+									onClick={handleAdd}
+									className="bg-blue-500 shadow-lg shadow-blue-500/50 text-white px-4 rounded w-full py-2"
+								>
+									Simpan
+								</button>
+							</div>
+						</div>
 					</div>
-				</div>		
-				<div className="flex flex-row mb-2">
-					<div className="basis-full">
-						<label className="block text-sm font-medium mb-1">Kategori</label>
-						<select 
-							className="border p-2 rounded w-full"
-							value={category}
-							onChange={(e) => setCategory(e.target.value)}
-						>
-							<option value="">Pilih Kategori</option>
-							{MAIN_CATEGORIES.map((cat) => (
-								<option key={cat} value={cat}>
-									{cat.replace('_', ' ')}
-								</option>
-							))}
-						</select>
-					</div>
-				</div>
-
-				<div className="flex flex-row mb-2 justify-center">
-					<div className="basis-50">
-						<button
-							onClick={handleAdd}
-							className="bg-blue-500 shadow-lg shadow-blue-500/50 text-white px-4 rounded w-full py-2"
-						>
-							Simpan
-						</button>
-					</div>
-				</div>
-			</div>
+					</>
+				)
+			}
 
 			{/* hitung total hari ini dan jumlah transaksi */}
 			<div className="mb-4 text-lg font-semibold">
