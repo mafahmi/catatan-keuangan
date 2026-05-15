@@ -4,12 +4,17 @@ import { supabase } from '@/lib/supabase'
 import { parseInput } from '@/lib/parser'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { Trash2, AlertTriangle, X } from 'lucide-react'
 
 export default function Home() {
 	const [input, setInput] = useState('')
 	const [category, setCategory] = useState('')
 	const [transactions, setTransactions] = useState<any[]>([])
 	const [loading, setLoading] = useState(true)
+	
+	// State untuk modal konfirmasi delete
+	const [showDeleteModal, setShowDeleteModal] = useState(false)
+	const [deleteTarget, setDeleteTarget] = useState<{ id: string; note: string } | null>(null)
 
 	// ambil data dari supabase
 	const fetchData = async () => {
@@ -32,6 +37,40 @@ export default function Home() {
 	useEffect(() => {
 		fetchData()
 	}, [])
+
+	// Fungsi untuk membuka modal konfirmasi
+	const openDeleteModal = (id: string, note: string) => {
+		setDeleteTarget({ id, note })
+		setShowDeleteModal(true)
+	}
+
+	// Fungsi untuk confirm delete
+	const confirmDelete = async () => {
+		if (!deleteTarget) return
+
+		const { error } = await supabase
+			.from('transactions')
+			.delete()
+			.eq('id', deleteTarget.id)
+
+		if (error) {
+			console.error('Supabase delete error:', error)
+			toast.error('Gagal menghapus: ' + error.message)
+		} else {
+			toast.success('Transaksi dihapus!')
+			fetchData()
+		}
+
+		// Tutup modal
+		setShowDeleteModal(false)
+		setDeleteTarget(null)
+	}
+
+	// Fungsi untuk cancel
+	const cancelDelete = () => {
+		setShowDeleteModal(false)
+		setDeleteTarget(null)
+	}
 
 	const handleAdd = async () => {
 		const parsed = parseInput(input)
@@ -298,16 +337,25 @@ export default function Home() {
 					transactions.map((item, index) => (
 						<div
 							key={item.id}
-							className="animate-in fade-in slide-in-from-bottom-2 duration-300 p-3 border rounded-xl mb-2"
+							className="animate-in fade-in slide-in-from-bottom-2 duration-300 p-3 border rounded-xl mb-2 relative group"
 							style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'backwards' }}
 						>
 							<div className="flex justify-between items-start">
-								<div className="font-semibold">{item.note}</div>
-								{item.category && (
-									<span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-										{item.category.replace('_', ' ')}
-									</span>
-								)}
+								<div className="font-semibold flex-1">{item.note}</div>
+								<div className="flex items-center gap-2">
+									{item.category && (
+										<span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+											{item.category.replace('_', ' ')}
+										</span>
+									)}
+									<button
+									onClick={() => openDeleteModal(item.id, item.note)}
+										className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded transition-colors"
+										title="Hapus transaksi"
+									>
+										<Trash2 className="h-5 w-5" />
+									</button>
+								</div>
 							</div>
 							<div>Rp {formatRupiah(item.amount)}</div>
 							<div className="text-xs text-gray-500">
@@ -317,6 +365,61 @@ export default function Home() {
 					))
 				)}
 			</div>
+
+			{/* CUSTOM DELETE CONFIRMATION MODAL */}
+			{showDeleteModal && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+					{/* Backdrop/Overlay */}
+					<div 
+						className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+						onClick={cancelDelete}
+					/>
+					
+					{/* Modal Content */}
+					<div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
+						{/* Close button */}
+						<button
+							onClick={cancelDelete}
+							className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+						>
+							<X className="h-5 w-5" />
+						</button>
+
+						{/* Icon */}
+						<div className="flex justify-center mb-4">
+							<div className="bg-red-100 p-3 rounded-full">
+								<AlertTriangle className="h-8 w-8 text-red-600" />
+							</div>
+						</div>
+
+						{/* Title */}
+						<h3 className="text-xl font-bold text-center mb-2 text-gray-900">
+							Hapus Transaksi "{deleteTarget?.note}" ?
+						</h3>
+
+						{/* Message */}
+						<small className="text-gray-500 text-center mb-4 block">
+							Tindakan ini tidak bisa dibatalkan
+						</small>
+
+						{/* Action Buttons */}
+						<div className="flex gap-3">
+							<button
+								onClick={cancelDelete}
+								className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+							>
+								Batal
+							</button>
+							<button
+								onClick={confirmDelete}
+								className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 shadow-lg shadow-red-500/30 transition-all"
+							>
+								Hapus
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</main>
 	)
 }
