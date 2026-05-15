@@ -1,36 +1,132 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💰 Catatan Keuangan
 
-## Getting Started
+Aplikasi pencatat pengeluaran harian dengan smart input dan budget tracking.
 
-First, run the development server:
+## ✨ Features
 
+- **Smart Input Parsing**: Tulis `makan 20k` langsung terparse
+- **Auto-Detect Kategori**: Otomatis mengenali kategori dari keyword
+- **Budget Tracking**: Monitor pengeluaran harian dengan visual feedback
+- **Real-time Updates**: Semua perubahan langsung tersimpan dan terupdate
+- **10 Kategori**: Makan & minum, transportasi, tagihan, dll.
+- **Insight Dashboard**: Lihat status budget (aman/hati-hati/boros)
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ 
+- npm/yarn/pnpm
+- Supabase account
+
+### Installation
+
+1. Clone repository
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repo-url>
+cd catatan-keuangan
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Setup environment variables
+```bash
+cp .env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Edit `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-## Learn More
+4. Setup Supabase table
+```sql
+CREATE TABLE transactions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  amount INTEGER NOT NULL,
+  note TEXT NOT NULL,
+  category TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
 
-To learn more about Next.js, take a look at the following resources:
+5. Run development server
+```bash
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📖 Usage
 
-## Deploy on Vercel
+### Input Format
+- `makan 20k` → Rp 20,000
+- `bensin 50rb` → Rp 50,000
+- `kopi 15000` → Rp 15,000
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Kategori Auto-Detect
+Aplikasi akan otomatis mendeteksi kategori berdasarkan keyword:
+- **Makan & Minum**: makan, kopi, snack, nasi, dll.
+- **Transportasi**: bensin, grab, gojek, parkir, tol
+- **Tagihan**: listrik, air, wifi, pulsa
+- **Dan 7 kategori lainnya**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js 16.2.4 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Database**: Supabase
+- **UI Components**: Sonner (Toast)
+- **Fonts**: Geist Sans & Geist Mono
+
+## 📁 Project Structure
+
+```
+catatan-keuangan/
+├── app/
+│   ├── layout.tsx        # Root layout
+│   ├── page.tsx          # Main app
+│   └── globals.css       # Styles
+├── lib/
+│   ├── supabase.ts       # Supabase client
+│   └── parser.ts         # Input parser
+└── .env.local            # Environment variables
+```
+
+## 🔧 Development
+
+### Commands
+```bash
+npm run dev      # Development server
+npm run build    # Production build
+npm run start    # Start production server
+npm run lint     # Run ESLint
+```
+
+### Documentation
+- [Features & Roadmap](/memories/repo/features.md)
+- [Architecture](/memories/repo/architecture.md)
+
+## 🤝 Contributing
+
+1. Fork the project
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+## 📝 License
+
+This project is open source and available under the MIT License.
+
+## 👨‍💻 Author
+
+**MA Fahmi**
+
+---
+
+⭐ Star this repo if you find it useful!

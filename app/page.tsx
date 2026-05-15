@@ -20,9 +20,10 @@ export default function Home() {
 			.order('created_at', { ascending: false })
 
 		if (error) {
-			console.error(error)
+			console.error('Supabase fetch error:', error)
+			toast.error('Gagal mengambil data: ' + error.message)
 		} else {
-			setTransactions(data)
+			setTransactions(data || [])
 		}
 		setLoading(false)
 	}
@@ -63,7 +64,8 @@ export default function Home() {
 			.insert(dataToInsert)
 
 		if (error) {
-			toast.error(error.message)
+			console.error('Supabase insert error:', error)
+			toast.error('Gagal menyimpan: ' + error.message)
 		} else {
 			setInput('')
 			setCategory('') // reset kategori juga
